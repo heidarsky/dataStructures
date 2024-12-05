@@ -1,221 +1,225 @@
-#include<iostream>
-#include<fstream>
-#include<string>
-#include<algorithm>
+#include <iostream>
+#include <fstream>
 #include "ArgumentManager.h"
-#include "linkedList.h"
+#include "postfix.h"
 #include <stack>
-#include <queue>
+#include <string>
+#include <algorithm>
+#include "prioQue.h"
 using namespace std;
 
-void cleanString(string lineStr){
-  lineStr.erase(remove(lineStr.begin(), lineStr.end(), '\n'), lineStr.end());
-  lineStr.erase(remove(lineStr.begin(), lineStr.end(), '\r'), lineStr.end());
-}
- 
-bool invalidOr(string test){
-  for(int i=0; i<test.size(); i++){
-    if(!isdigit(test.at(i))){
-      if(test.at(i) == '(' || test.at(i) == ')')
-        continue;
-      else{
-        cout << test.at(i) << " << invalid" << endl;
-        return true; // if true invalid ID
-        }
-    }
-  }
-  return false;
+//make string only brackets for easier bool
+string strofBrac(string s) {
+	string x = "";
+	for (int i = 0; i < s.size(); i++) {
+		if (s[i] == '(' || s[i] == ')' || s[i] == '[' || s[i] == ']' || s[i] == '{' || s[i] == '}')
+			x += s[i];
+	}
+	return x;
 }
 
-void strSearch(string sr, int &num){ // count braces in string
-  string temp = sr;
-  int bracIndex = temp.find('(');
-  string test;
-  
-  while(bracIndex < temp.size()-1){
-    if(temp[bracIndex] == '('){
-      num++;
-      //cout << temp << endl;
-      }
-    temp = temp.substr(bracIndex+1);
-  }
+//false expression if redundant
+bool redundant(string s) {
+	stack<char> st;
+	for (int i = 0; i < s.size();i++) {
+		if ((s[i] != ')') && (s[i] != ']') && (s[i] != '}')) { //if not closed push
+			st.push(s[i]);
+		}
+		if ( (s[i] == ')') || (s[i] == ']') || (s[i] == '}') ) { //if closed check top
+			char t = st.top(); st.pop();
+			if ( (t == '(') || (t == '[') || (t == '{') ) { // if open brack false
+				return false;
+				break;
+			}
+			else {
+				while(!st.empty() && (st.top() != '(') && (st.top() != '[') && (st.top() != '{')){
+					st.pop();
+				}
+				st.pop();
+			}
+		}
+	}
+	return true;
 }
 
-void rev(string &results, int &parStack, stack<char> &res, queue<char> &resQ, string &idTemp){
-  
-    for(int i = 0; i < results.length(); i++){
-      if(parStack == 0 && isdigit(results[i])){
-        idTemp += results[i]; //add num to string
-      }
-        else if(results[i] == '('){ 
-          res.push(results[i]);
-          parStack++;
-        }
-        else if(parStack > 0 && isdigit(results[i])){ 
-          res.push(results[i]); 
-          //cout << "pushing inside: " << results[i] << endl; 
-        }
-        else if(parStack == 1 && results[i] == ')'){     
-          while(res.top() != '('){
-            idTemp += res.top();
-            res.pop();
-          }
-          res.pop();
-          parStack--; //brace closed
-        }
-        else if( parStack > 1 && results[i] == ')'){
-          while(res.top() != '('){
-            //cout << "to que>: " << res.top() << endl;
-            resQ.push(res.top());
-            res.pop();
-          }
-          res.pop(); // delete (
-          
-          while(!resQ.empty()){
-            //cout << "to stack>: " << resQ.front() << endl;
-            res.push(resQ.front());
-            resQ.pop();
-          }
-          parStack--; //brace closed
-        }
-    else{
-      while (!res.empty()) {
-            idTemp += res.top();
-            res.pop();
-      }
-    }
-  }
+//true if balanced paranthesis
+bool valid(string s) {
+	stack<char> st;
+	s = strofBrac(s);
+	cout << s << endl;
+	for (int i = 0; i < s.size(); i++) {
+		if (st.empty())
+			st.push(s[i]);
+		else if (s[i] == '{' || s[i] == '(' || s[i] == '[') {
+			st.push(s[i]);
+		}
+		else if (s[i] == ')') {
+			if (st.top() != '(') {
+				return false;
+				break;
+			}
+			st.pop();
+		}
+		else if (s[i] == ']') {
+			if (st.top() != '[') {
+				return false;
+				break;
+			}
+			st.pop();
+		}
+		else if (s[i] == '}') {
+			if (st.top() != '{') {
+				return false;
+				break;
+			}
+			st.pop();
+		}
+	}
+	if(st.empty()) 
+		return true;
+	else 
+		return false;
 }
 
-int main(int argc, char *argv[]){
+//infix to postfix
+string toPostfix(string h, string result, postfix &pf1) {
+	for (int i = 0; i < h.size(); i++) {
+		if (isdigit(h[i]))
+			result += h[i];
+		else if (h[i] == '[') {
+			pf1.push(h[i]);
+		}
+		else if (h[i] == ']') {
+			while (pf1.peak() != '[') {
+				result += pf1.peak();
+				pf1.pop();
+			}
+			pf1.pop(); // remove the [
+		}
+		else if (h[i] == '{') {
+			pf1.push(h[i]);
+		}
+		else if (h[i] == '}') {
+			while (pf1.peak() != '{') {
+				result += pf1.peak();
+				pf1.pop();
+			}
+			pf1.pop(); // remove the {
+		}
+		else if (h[i] == '(') {
+			pf1.push(h[i]);
+		}
+		else if (h[i] == ')') {
+			while (pf1.peak() != '(') {
+				result += pf1.peak();
+				pf1.pop();
+			}
+			pf1.pop(); // remove the (
+		}
+		else {
+			while (!pf1.isEmpty() && pf1.priority(h[i]) <= pf1.priority(pf1.peak())) {
+				result += pf1.peak();
+				pf1.pop();
+			}
+			pf1.push(h[i]);
+		}
+	}
+	while (!pf1.isEmpty()) {
+		result += pf1.peak();
+		pf1.pop();
+	}
+	return result;
+}
 
-  ArgumentManager argMan(argc, argv);
-  ifstream input(argMan.get("input"));
-  ofstream output(argMan.get("output"));
-  //ifstream input("input11.txt");
-  //ofstream output("output11.txt"); 
+//calculate after postfix
+int evalPriority(string h, stack<int> &stF) {
+	int tem; // math res
+	int a; int b;
+	char op;
 
-  linkedList bar1;
-  linkedList bar2;
-  bool idInvalid;
-  string lineStr, whichBar;
-  int maxHundred = 0;
+	for (int i = 0; i < h.size() ; i++) {
+		if (isdigit(h[i]))
+			stF.push(h[i] - '0');
+		else {
+			op = h[i]; //operator
+			a = stF.top();
+			stF.pop();
 
-  stack<char> res; //result stack
-  queue<char> resQ; //queue to hold
-  string results;
-  int parStack = 0;
-  string idTemp = "";
-  //results = "(4(23)1)";
-  int numBrac = 0;
+			b = stF.top();
+			stF.pop();
+			if (op == '/') {
+				tem = b / a; // ORDER IS DIFFERENT CUS STACK!!
+				stF.push(tem);
+			}
+			else if (op == '*') {
+				tem = b * a;
+				stF.push(tem);
+			}
+			else if (op == '+') {
+				tem = b + a;
+				stF.push(tem);
+			}
+			else if (op == '-') {
+				tem = b - a;
+				stF.push(tem);
+			}
+			//cout << a << op << b << " = " << tem << endl;
+		}
+	}
+	return stF.top();
+}
 
-// FILE PROCESSING 
-  while(getline(input, lineStr) && maxHundred <= 100){ // max 100 IDs
-    cleanString(lineStr);
-    if(lineStr == "") // skip blank lines
-      continue;
-      if(lineStr == "Bar1")
-        whichBar = lineStr; // to know where to add IDs
-      if(lineStr == "Bar2")
-        whichBar = lineStr; // to know where to add IDs
+void cleanUp(string& dataType) {
+	dataType.erase(remove(dataType.begin(), dataType.end(), '\n'), dataType.end());
+	dataType.erase(remove(dataType.begin(), dataType.end(), '\r'), dataType.end());
+	dataType.erase(remove(dataType.begin(), dataType.end(), ' '), dataType.end());
+}
 
-    // if Bar 1
-    if(whichBar == "Bar1" && lineStr != "Bar1"){
-      // only num and parantheses otherwise invalid
-      idInvalid = invalidOr(lineStr);
-      if(idInvalid == true)
-        cout << "can't use this ID :" << lineStr << endl;
-      else{
-        // m characters >=1 && <=100 for each ID
-        if(lineStr.size() >= 1 && lineStr.size() <= 100){
-          //cout << lineStr << " >>>>>> in Bar 1" << endl; //ID to bar#
-          maxHundred ++;
-          
-          strSearch(results, numBrac);
-          //cout << "num of bracket-pairs : " << numBrac << endl;
-          rev(lineStr, parStack, res, resQ, idTemp); //reverse
-          cout << "Reverse ID: " << idTemp << endl;
-          string results = idTemp;
-          idTemp = "";
-          bar1.insert(results);
-        }
-        else{
-          cout << lineStr.size() << " : can't be less than 1 or more than 100" << endl;
-        }
-      }
-    }
-    
-    // if Bar 2
-    else if(whichBar == "Bar2" && lineStr != "Bar2"){
-      // only num and parantheses otherwise invalid
-      idInvalid = invalidOr(lineStr);
-      if(idInvalid == true)
-        cout << "can't use this ID :" << lineStr << endl;
-      else{
-        // m characters >=1 && <=100 for each ID
-        if(lineStr.size() >= 1 && lineStr.size() <= 100){ 
-          //cout << lineStr << " >>>>>> in Bar 2" << endl; // ID to bar#
-          maxHundred ++;
-          
-          strSearch(results, numBrac);
-          //cout << "num of bracket-pairs : " << numBrac << endl;
-          rev(lineStr, parStack, res, resQ, idTemp); //reverse
-          cout << "Reverse ID: " << idTemp << endl;
-          string results = idTemp;
-          idTemp = "";
-          bar2.insert(results);
-        }
-        else{
-          cout << lineStr.size() << " : can't be less than 1 or more than 100" << endl;
-        }
-      }
-    }
-    else
-      cout << lineStr << endl; // print Bar1 or Bar2 lines
-  }
-  
-  // Input max 100
-  //cout << "number of IDs in file: " << maxHundred << endl; 
-  //cout << endl;
 
- 
-// GUILT CHECK
-  stack<string> guiltStack; 
-  stack<string> innocStack;
-  bar1.nextId(bar2, guiltStack, innocStack); 
+int main(int argc, char* argv[]) {
+	ArgumentManager argMan(argc, argv);
+	ifstream fin(argMan.get("input"));
+	ofstream fout(argMan.get("output"));
+	//ifstream fin("input3.txt");
+	//ofstream fout("output3.txt");
+	string line;
+	postfix pf1; //postfix
+	string result = "";
+	stack<int> stF; //evaluate priority
+	int prio;
+	prioQue myQ;
 
-  linkedList guilt;
-  linkedList innoc;
-  bool isSort = false;
-  cout << endl;
-  
-// PRINTING GUILTY
-  if(!guiltStack.empty()){ //skip print if empty
-    cout << "Guilty: " << endl;
-    output << "Guilty: " << endl; 
-    }
-  guilt.insertRec(guiltStack, guilt); //stack to linkedlist recursive
-
-  guilt.sortR(isSort ,guilt.getHead()); //sort recursive
-  if(!guilt.isEmpty()){ //skip print if empty
-    guilt.printRecursive(guilt.getHead()); 
-    guilt.outPrintRec(guilt.getHead(), output); 
-    if(!innocStack.empty()) //skip printing new line if empty
-      output << endl;    
-  }      
-
-// PRINTING INNOCENT
-  isSort = false;   
-  if(!innocStack.empty()){                
-    cout << "Innocent: " << endl;        
-    output << "Innocent: " << endl;               
-    }               
-  innoc.insertRec(innocStack, innoc);       
-  innoc.sortR(isSort, innoc.getHead());     
-  if(!innoc.isEmpty()){ 
-    innoc.printRecursive(innoc.getHead());
-    innoc.outPrintRec(innoc.getHead() ,output);   
-  }
-    
-  return 0; 
+	if (fin.eof()){
+		cout << "file empty";
+		fin.close(); fout.close();
+		}
+	else {
+		while (getline(fin, line)) {
+			if (line == "")
+				cout << "empty line" << endl;
+			else if (valid(line) == false) {
+				cout << "invalid exp " << line << endl << endl;
+			}
+			else if (redundant(line) == false) {
+				cout << "redundant " << line << endl << endl;
+			}
+			else {
+					cout << line << endl;
+				result = toPostfix(line, result, pf1);
+					cout << result << endl;
+				cleanUp(result);
+				prio = evalPriority(result, stF);
+					cout << prio << endl << endl;
+				myQ.enqueue(line, prio);
+				
+			}
+			result = "";
+		}
+		if (myQ.isEmpty())
+			fout << "No Valid Expression";
+		else
+			myQ.print(fout);
+	}
+	
+	return 0;
 }
